@@ -63,6 +63,8 @@ export class StudyEngine {
       questions: sessionQuestions,
       currentQuestionIndex: 0,
       correctAnswers: 0,
+      attempts: {},
+      hasReachedLastQuestion: sessionQuestions.length <= 1,
     };
   }
 }

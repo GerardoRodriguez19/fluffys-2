@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { PageLayout, PageHeader, Stack } from "@/components/layout";
 import { InfoCard, Button } from "@/components/ui";
 import { books } from "@/data";
+import { scoreSession } from "@/features/study/progress/scoreSession";
 
 import { useStudySessionStore } from "@/store/studySession";
 
@@ -25,12 +26,10 @@ export default function StudyResultsPage() {
     );
   }
 
-  const book = books.find((book) => book.id === session.configuration.bookId);
+  const score = scoreSession(session);
+  const percentage = score.total > 0 ? Math.round((score.correct / score.total) * 100) : 0;
 
-  const totalQuestions = session.questions.length;
-  const correctAnswers = session.correctAnswers;
-  const percentage = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
-  const incorrectAnswers = totalQuestions - correctAnswers;
+  const book = books.find((book) => book.id === session.configuration.bookId);
 
   return (
     <PageLayout>
@@ -50,12 +49,16 @@ export default function StudyResultsPage() {
 
               <p className={styles.answers}>
                 <strong>
-                  {correctAnswers} de {totalQuestions}
+                  {score.correct} de {score.total}
                 </strong>{" "}
                 respuestas correctas
               </p>
 
-              <p className={styles.answers}>{incorrectAnswers} respuestas incorrectas</p>
+              <p className={styles.answers}>
+                {score.incorrect} incorrectas
+                {score.dontKnow > 0 ? ` · ${score.dontKnow} “No sé”` : ""}
+                {score.unanswered > 0 ? ` · ${score.unanswered} sin responder` : ""}
+              </p>
             </div>
           </InfoCard>
           <Stack gap="md">
