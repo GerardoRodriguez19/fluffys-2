@@ -1,0 +1,23 @@
+.header {
+  margin-bottom: 20px;
+}
+
+.header h2 {
+  margin: 0;
+
+  font-size: 1.2rem;
+}
+
+.header p {
+  margin-top: 6px;
+
+  color: var(--text-light);
+}
+
+.content {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 18px;
+}

@@ -1,0 +1,94 @@
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+
+  color: var(--text);
+  font-weight: 600;
+}
+
+.field input,
+.field select,
+.field textarea {
+  padding: 0.75rem 0.9rem;
+
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+
+  background: var(--surface);
+  color: var(--text);
+
+  font: inherit;
+  font-weight: 400;
+}
+
+.questionRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.meta {
+  margin: 0;
+  color: var(--text-light);
+  font-size: 0.9rem;
+}
+
+.prompt {
+  margin: 0.4rem 0 0;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.answer {
+  margin: 0.35rem 0 0;
+  color: var(--text-light);
+}
+
+.error {
+  margin: 0;
+  color: var(--danger);
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.hint {
+  margin: -0.25rem 0 0;
+  color: var(--text-light);
+  font-size: 0.9rem;
+  font-weight: 400;
+}
+
+.csvErrors {
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius);
+  background: var(--danger-glow);
+  color: var(--danger);
+}
+
+.csvErrors p {
+  margin: 0.25rem 0;
+  font-size: 0.95rem;
+}
+
+.csvPreviewMeta {
+  margin: 0;
+  color: var(--text-light);
+}
+
+.templateLink {
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: underline;
+  width: fit-content;
+}
+
+.templateLink:hover {
+  color: var(--primary-hover);
+}

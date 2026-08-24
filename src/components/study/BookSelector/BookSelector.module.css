@@ -1,0 +1,13 @@
+.book {
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.book:hover {
+  transform: translateY(-2px);
+}
+
+.selected {
+  outline: 3px solid var(--primary);
+  border-radius: var(--radius-lg);
+}

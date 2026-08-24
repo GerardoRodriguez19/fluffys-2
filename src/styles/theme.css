@@ -1,0 +1,41 @@
+:root {
+  --hp-red: #641e1e;
+  --hp-gold: #c39a1c;
+  --hp-brown: #3d2f22;
+  --hp-gray: #717679;
+  --hp-paper: #efeee9;
+
+  --background: var(--hp-paper);
+  --surface: #ffffff;
+
+  --primary: var(--hp-red);
+  --primary-hover: #4e1717;
+
+  --secondary: var(--hp-gold);
+
+  --success: #43a047;
+  --danger: #e53935;
+
+  --success-glow: rgba(67, 160, 71, 0.18);
+  --danger-glow: rgba(229, 57, 53, 0.18);
+
+  --text: var(--hp-brown);
+  --text-light: var(--hp-gray);
+
+  --border: #d8d3ca;
+
+  --radius: 18px;
+
+  --shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+}
+
+body {
+  background:
+    radial-gradient(
+      circle at top,
+
+      rgba(195, 154, 28, 0.08),
+      transparent 40%
+    ),
+    var(--background);
+}

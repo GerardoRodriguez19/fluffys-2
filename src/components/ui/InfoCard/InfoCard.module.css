@@ -1,0 +1,80 @@
+.card {
+  width: 100%;
+  border: none;
+  border-radius: 22px;
+  overflow: hidden;
+  text-align: left;
+  background: linear-gradient(rgba(255, 255, 255, 0.96), rgba(252, 251, 248, 0.92));
+  box-shadow: var(--shadow);
+}
+
+.card:hover {
+  transform: translateY(-6px);
+
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.12);
+}
+
+.topBar {
+  height: 10px;
+}
+
+.content {
+  padding: 28px;
+}
+
+.default {
+}
+
+.compact .content {
+  padding: 0;
+}
+
+.card:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 3px;
+}
+
+.clickable {
+  cursor: pointer;
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.clickable:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.12);
+}
+
+.selected {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+
+  background: linear-gradient(rgba(255, 255, 255, 0.98), rgba(255, 250, 235, 0.96));
+
+  box-shadow:
+    0 0 0 4px rgba(195, 154, 28, 0.18),
+    var(--shadow);
+}
+
+.correct {
+  outline: 2px solid #43a047;
+  outline-offset: -2px;
+
+  background: linear-gradient(rgba(255, 255, 255, 0.98), rgba(241, 248, 233, 0.96));
+
+  box-shadow:
+    0 0 0 4px var(--success-glow),
+    var(--shadow);
+}
+
+.incorrect {
+  outline: 2px solid #e53935;
+  outline-offset: -2px;
+
+  background: linear-gradient(rgba(255, 255, 255, 0.98), rgba(255, 235, 238, 0.96));
+
+  box-shadow:
+    0 0 0 4px var(--danger-glow),
+    var(--shadow);
+}

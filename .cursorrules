@@ -1,0 +1,2999 @@
+# Fluffys — Documento técnico de contexto y migración
+
+> **Propósito:** Este documento concentra el contexto técnico y arquitectónico del proyecto **Fluffys** para que otra IA o desarrollador pueda continuar el trabajo sin depender del historial original de conversaciones.
+
+---
+
+# 1. Visión general del proyecto
+
+**Fluffys** es una aplicación web de estudio/trivia centrada inicialmente en el universo de **Harry Potter**.
+
+El objetivo principal es permitir al usuario:
+
+- Seleccionar un libro.
+- Seleccionar una sección del libro.
+- Seleccionar capítulos específicos.
+- Seleccionar categorías de preguntas.
+- Elegir una cantidad de preguntas.
+- Elegir un modo de estudio.
+- Generar una sesión de estudio.
+- Responder preguntas de opción múltiple.
+- Recibir feedback visual inmediato.
+- Avanzar por la sesión.
+- Finalizar y, posteriormente, ver resultados y estadísticas.
+
+La aplicación está construida como una SPA moderna con:
+
+- React
+- TypeScript
+- Vite
+- React Router
+- Zustand
+- Firebase
+- CSS Modules
+- Arquitectura basada en capas y responsabilidades
+- Componentes reutilizables
+- Alias de importación con `@/`
+
+El proyecto tiene intención de evolucionar hacia una **PWA instalable** y utilizar Firebase como backend y almacenamiento del banco de preguntas.
+
+---
+
+# 2. Stack tecnológico
+
+## Frontend
+
+- React
+- TypeScript
+- Vite
+- React Router DOM
+- Zustand
+- Framer Motion
+- Lucide React
+
+## Estilos
+
+- CSS Modules
+- Variables CSS centralizadas en `src/styles/theme.css`
+- Componentes reutilizables de UI
+- Diseño responsive
+
+## Backend / datos
+
+- Firebase
+  - Authentication
+  - Firestore
+
+Firebase ya fue configurado anteriormente para permitir autenticación y sincronización entre navegadores.
+
+## Calidad
+
+Se han utilizado:
+
+```bash
+npm run lint
+npm run build
+```
+
+Al momento de generar este documento, los últimos cambios realizados dejaron ambos comandos sin errores.
+
+---
+
+# 3. Arquitectura general
+
+La aplicación intenta evitar una arquitectura basada únicamente en componentes gigantes.
+
+Se están separando responsabilidades en capas.
+
+La idea general es:
+
+```text
+UI / Pages
+    ↓
+Features / Hooks / Stores
+    ↓
+Application / Engine
+    ↓
+Repositories
+    ↓
+Data source
+    ↓
+Firebase / datos locales
+```
+
+## Principio principal
+
+La interfaz no debería conocer directamente cómo se obtienen las preguntas.
+
+Por ejemplo:
+
+```text
+StudyConfigurator
+      ↓
+StudyEngine
+      ↓
+BookQuestionRepository
+      ↓
+LocalBookQuestionRepository / FirebaseBookQuestionRepository
+```
+
+Esto permite que en el futuro se pueda cambiar la fuente de datos sin modificar toda la UI.
+
+---
+
+# 4. Patrones de diseño utilizados
+
+## 4.1 Repository Pattern
+
+Las preguntas se obtienen mediante una abstracción de repositorio.
+
+Existe una interfaz similar a:
+
+```ts
+BookQuestionRepository
+```
+
+La implementación actual utilizada durante el desarrollo de sesiones es:
+
+```ts
+LocalBookQuestionRepository
+```
+
+La intención es posteriormente crear una implementación conectada a Firebase.
+
+Ejemplo conceptual:
+
+```ts
+interface BookQuestionRepository {
+  getQuestions(): Promise<BookQuestion[]>;
+}
+```
+
+Después pueden existir:
+
+```text
+LocalBookQuestionRepository
+FirebaseBookQuestionRepository
+```
+
+La UI y el motor de estudio no deberían depender de una implementación concreta.
+
+---
+
+## 4.2 Application / Engine Layer
+
+Existe:
+
+```text
+StudyEngine
+```
+
+Su responsabilidad es generar una sesión de estudio.
+
+No debe encargarse de renderizar componentes.
+
+Su flujo actual es aproximadamente:
+
+```text
+StudyConfiguration
+        ↓
+Obtener preguntas
+        ↓
+Filtrar por libro
+        ↓
+Filtrar por capítulos
+        ↓
+Filtrar por categorías
+        ↓
+Shuffle
+        ↓
+Limitar cantidad
+        ↓
+Generar opciones
+        ↓
+StudySession
+```
+
+---
+
+## 4.3 Generator Pattern
+
+Existe:
+
+```text
+AnswerGenerator
+```
+
+Su responsabilidad es generar las opciones de respuesta para una pregunta.
+
+Esto permite mantener separada la lógica de generación de respuestas del componente visual.
+
+Conceptualmente:
+
+```ts
+AnswerGenerator.generate(question, availableQuestions)
+```
+
+debe devolver opciones para la pregunta actual.
+
+Actualmente el proyecto tiene un problema funcional pendiente: algunas preguntas del banco solo tienen una respuesta/opción disponible, por lo que todavía no se ha podido probar completamente el flujo de respuesta incorrecta.
+
+---
+
+## 4.4 Global State con Zustand
+
+Se utiliza Zustand para mantener el estado global de la sesión de estudio.
+
+Store:
+
+```text
+src/store/studySession.ts
+```
+
+La sesión generada se guarda globalmente antes de navegar a la pantalla de estudio.
+
+Esto evita depender de pasar objetos grandes mediante navegación o props.
+
+---
+
+# 5. Estructura general de carpetas
+
+La estructura exacta puede evolucionar, pero conceptualmente el proyecto contiene:
+
+```text
+src/
+│
+├── app/
+│   ├── pages/
+│   └── router/
+│
+├── assets/
+│   └── images/
+│       └── fluffy-logo.png
+│
+├── components/
+│   ├── layout/
+│   ├── study/
+│   └── ui/
+│
+├── data/
+│
+├── domain/
+│   ├── engine/
+│   ├── generators/
+│   └── repository/
+│
+├── features/
+│   └── study/
+│
+├── lib/
+│   └── utils/
+│
+├── store/
+│
+├── styles/
+│   └── theme.css
+│
+└── types/
+```
+
+Nota importante:
+
+Durante el desarrollo apareció accidentalmente una estructura anidada:
+
+```text
+src/app/pages/src/app
+```
+
+Los últimos directorios `src/app` estaban vacíos y fueron eliminados.
+
+---
+
+# 6. Componentes de layout
+
+Existen componentes reutilizables para estructura general.
+
+Entre ellos:
+
+```text
+PageLayout
+PageHeader
+Stack
+```
+
+## Stack
+
+Se utiliza para organizar elementos vertical u horizontalmente mediante props como:
+
+```tsx
+<Stack gap="lg">
+```
+
+También se utiliza:
+
+```tsx
+<Stack justify="center">
+```
+
+La intención es reducir repetición de layouts manuales.
+
+---
+
+# 7. Componentes UI
+
+Existe una capa:
+
+```text
+src/components/ui
+```
+
+Algunos componentes importantes:
+
+```text
+Button
+Section
+InfoCard
+```
+
+---
+
+# 8. Button
+
+El componente `Button` soporta:
+
+```ts
+interface Props {
+  children: ReactNode;
+  variant?: "primary" | "secondary" | "ghost" | "danger";
+  size?: "sm" | "md" | "lg";
+  disabled?: boolean;
+  className?: string;
+  onClick?(): void;
+}
+```
+
+El soporte para `disabled` fue agregado explícitamente durante el desarrollo del flujo de preguntas.
+
+La implementación conceptual es:
+
+```tsx
+<button
+  type="button"
+  disabled={disabled}
+  onClick={onClick}
+>
+  {children}
+</button>
+```
+
+---
+
+# 9. InfoCard
+
+`InfoCard` es un componente reutilizable para tarjetas.
+
+Actualmente soporta:
+
+```ts
+interface Props {
+  children?: ReactNode;
+  topBar?: string;
+  onClick?(): void;
+  className?: string;
+  variant?: "default" | "compact";
+}
+```
+
+Cuando recibe `onClick`, se renderiza como:
+
+```tsx
+<button>
+```
+
+Cuando no es clickeable, se renderiza como:
+
+```tsx
+<div>
+```
+
+Esto permite reutilizar la tarjeta tanto para contenido como para elementos interactivos.
+
+El componente usa CSS Modules:
+
+```text
+InfoCard.tsx
+InfoCard.module.css
+```
+
+---
+
+# 10. Sistema de estilos y variables
+
+Archivo principal:
+
+```text
+src/styles/theme.css
+```
+
+La paleta actual está basada en Harry Potter.
+
+```css
+:root {
+  --hp-red: #641e1e;
+  --hp-gold: #c39a1c;
+  --hp-brown: #3d2f22;
+  --hp-gray: #717679;
+  --hp-paper: #efeee9;
+
+  --background: var(--hp-paper);
+  --surface: #ffffff;
+
+  --primary: var(--hp-red);
+  --primary-hover: #4e1717;
+
+  --secondary: var(--hp-gold);
+
+  --text: var(--hp-brown);
+  --text-light: var(--hp-gray);
+
+  --border: #d8d3ca;
+
+  --radius: 18px;
+
+  --shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+}
+```
+
+También existe un fondo general:
+
+```css
+body {
+  background:
+    radial-gradient(
+      circle at top,
+      rgba(195, 154, 28, 0.08),
+      transparent 40%
+    ),
+    var(--background);
+}
+```
+
+## Convención importante
+
+Se decidió mantener las variables existentes sin crear por ahora un archivo separado como:
+
+```text
+design-tokens.md
+```
+
+La convención actual es utilizar:
+
+```css
+var(--primary)
+var(--primary-hover)
+var(--secondary)
+var(--text)
+var(--text-light)
+var(--border)
+var(--surface)
+var(--background)
+var(--shadow)
+var(--radius)
+```
+
+También existen las variables base:
+
+```css
+--hp-red
+--hp-gold
+--hp-brown
+--hp-gray
+--hp-paper
+```
+
+Importante: durante el desarrollo aparecieron variables como:
+
+```css
+--color-border
+--color-primary
+```
+
+pero **no existen en el `theme.css` actual**.
+
+No son parte de Bootstrap ni deben utilizarse.
+
+Todo código que todavía utilice:
+
+```css
+var(--color-border)
+var(--color-primary)
+```
+
+debe revisarse y reemplazarse por la convención actual.
+
+Normalmente:
+
+```css
+var(--color-border)
+```
+
+→
+
+```css
+var(--border)
+```
+
+Y:
+
+```css
+var(--color-primary)
+```
+
+→
+
+```css
+var(--primary)
+```
+
+---
+
+# 11. Data del proyecto
+
+Existe una carpeta:
+
+```text
+src/data
+```
+
+Desde ahí se importan, entre otros datos:
+
+```ts
+books
+```
+
+Ejemplo:
+
+```ts
+import { books } from "@/data";
+```
+
+Los libros contienen secciones y capítulos.
+
+Conceptualmente:
+
+```ts
+interface Book {
+  id: BookId;
+  title: string;
+  sections: Section[];
+}
+```
+
+Cada sección contiene algo similar a:
+
+```ts
+interface Section {
+  id: SectionId;
+  chapters: number[];
+}
+```
+
+---
+
+# 12. Tipos principales
+
+Los tipos están centralizados en:
+
+```text
+src/types
+```
+
+Entre los tipos utilizados se encuentran:
+
+```ts
+BookId
+SectionId
+StudyConfiguration
+StudySession
+BookQuestion
+```
+
+---
+
+# 13. StudyConfiguration
+
+La configuración representa las decisiones del usuario antes de comenzar una sesión.
+
+Conceptualmente contiene:
+
+```ts
+interface StudyConfiguration {
+  bookId: BookId | null;
+  sectionId: SectionId | null;
+  chapters: number[];
+  categories: string[];
+  questionAmount: number | "all";
+  studyMode: StudyMode;
+}
+```
+
+Los nombres exactos de algunos tipos auxiliares pueden variar según los archivos actuales.
+
+Las propiedades utilizadas actualmente son:
+
+```ts
+configuration.bookId
+configuration.sectionId
+configuration.chapters
+configuration.categories
+configuration.questionAmount
+configuration.studyMode
+```
+
+---
+
+# 14. Categorías de preguntas
+
+Para el proyecto de Harry Potter se han utilizado categorías como:
+
+```ts
+export const categories = [
+  "Personaje",
+  "Hechizo o encantamiento",
+  "Organización",
+  "Ley - decreto",
+  "Poción",
+  "Criatura",
+  "Fecha",
+  "Lugar",
+  "Profecía",
+  "Muerte",
+  "Medio",
+  "Educación",
+  "Nota / curiosidad",
+  "Recuerdo",
+  "Artefacto u objeto",
+];
+```
+
+Estas categorías fueron diseñadas inicialmente pensando en el libro y película 5.
+
+---
+
+# 15. StudyConfigurator
+
+El configurador permite seleccionar las condiciones de una sesión.
+
+Componentes utilizados:
+
+```tsx
+BookSelector
+SectionSelector
+ChapterSelector
+CategorySelector
+QuestionAmountSelector
+StudyModeSelector
+```
+
+El hook utilizado es:
+
+```ts
+useStudyConfiguration()
+```
+
+Se obtiene:
+
+```ts
+const { configuration, setConfiguration } = useStudyConfiguration();
+```
+
+El flujo general es:
+
+```text
+Seleccionar libro
+      ↓
+Seleccionar sección
+      ↓
+Se cargan capítulos de esa sección
+      ↓
+Seleccionar capítulos
+      ↓
+Seleccionar categorías
+      ↓
+Seleccionar cantidad
+      ↓
+Seleccionar modo
+      ↓
+Comenzar estudio
+```
+
+Cuando cambia el libro:
+
+```ts
+bookId,
+sectionId: null,
+chapters: [],
+```
+
+Esto evita que una sección o capítulos del libro anterior permanezcan seleccionados.
+
+Cuando cambia la sección, se buscan los capítulos:
+
+```ts
+const book = books.find((book) => book.id === selectedBook);
+
+const section = book?.sections.find(
+  (section) => section.id === sectionId
+);
+```
+
+Después:
+
+```ts
+chapters: section?.chapters ?? []
+```
+
+---
+
+# 16. StudyEngine
+
+Archivo:
+
+```text
+src/domain/engine/StudyEngine.ts
+```
+
+La versión corregida conceptualmente debe trabajar con `studyQuestions`.
+
+Anteriormente existía este código:
+
+```ts
+const studyQuestions = questions.map((question) => ({
+  bookQuestion: question,
+  options: AnswerGenerator.generate(question, questions),
+}));
+```
+
+pero se devolvía:
+
+```ts
+questions
+```
+
+en lugar de:
+
+```ts
+studyQuestions
+```
+
+Esto generaba inconsistencia porque la UI necesita tanto la pregunta original como sus opciones.
+
+La versión conceptual correcta es:
+
+```ts
+import type {
+  StudyConfiguration,
+  StudySession,
+} from "@/types";
+
+import type {
+  BookQuestionRepository,
+} from "../repository/BookQuestionRepository";
+
+import { AnswerGenerator } from "../generators/AnswerGenerator";
+
+import { shuffle } from "@/lib/utils/shuffle";
+
+export class StudyEngine {
+  private readonly repository: BookQuestionRepository;
+
+  constructor(repository: BookQuestionRepository) {
+    this.repository = repository;
+  }
+
+  async createSession(
+    configuration: StudyConfiguration
+  ): Promise<StudySession> {
+    let questions = await this.repository.getQuestions();
+
+    if (configuration.bookId) {
+      questions = questions.filter(
+        (question) =>
+          question.bookId === configuration.bookId
+      );
+    } else {
+      questions = [];
+    }
+
+    if (configuration.chapters.length > 0) {
+      questions = questions.filter(
+        (question) =>
+          configuration.chapters.includes(question.chapter)
+      );
+    }
+
+    questions = questions.filter(
+      (question) =>
+        configuration.categories.includes(question.category)
+    );
+
+    questions = shuffle(questions);
+
+    if (configuration.questionAmount !== "all") {
+      questions = questions.slice(
+        0,
+        configuration.questionAmount
+      );
+    }
+
+    const studyQuestions = questions.map((question) => ({
+      bookQuestion: question,
+      options: AnswerGenerator.generate(question, questions),
+    }));
+
+    return {
+      configuration,
+      questions: studyQuestions,
+      currentQuestionIndex: 0,
+      correctAnswers: 0,
+    };
+  }
+}
+```
+
+Importante: el nombre de la propiedad dentro de `StudySession` debe coincidir con el tipo real.
+
+Si `StudySession.questions` representa objetos con:
+
+```ts
+bookQuestion
+options
+```
+
+entonces debe devolver:
+
+```ts
+questions: studyQuestions
+```
+
+No tiene sentido conservar `studyQuestions` si no se utiliza.
+
+---
+
+# 17. AnswerGenerator
+
+Responsabilidad:
+
+```text
+Generar opciones de respuesta para una pregunta.
+```
+
+La idea es:
+
+```ts
+AnswerGenerator.generate(
+  currentQuestion,
+  availableQuestions
+)
+```
+
+debe construir opciones que incluyan:
+
+- La respuesta correcta.
+- Respuestas incorrectas provenientes de otras preguntas compatibles.
+- Un orden aleatorio.
+
+Pendiente importante:
+
+Actualmente el banco de preguntas utilizado durante las pruebas no tiene suficientes opciones/distractores compatibles, por lo que en algunos casos solo aparece una respuesta.
+
+Esto debe mejorarse antes de considerar terminado el sistema de opción múltiple.
+
+---
+
+# 18. Study Session Store
+
+Archivo:
+
+```text
+src/store/studySession.ts
+```
+
+Se utiliza Zustand.
+
+El store contiene al menos:
+
+```ts
+session
+setSession
+nextQuestion
+incrementCorrectAnswers
+```
+
+Durante el desarrollo se agregaron específicamente dos funciones:
+
+```text
+nextQuestion
+incrementCorrectAnswers
+```
+
+El flujo esperado:
+
+```text
+StudyEngine crea StudySession
+        ↓
+StudyConfigurator guarda sesión en Zustand
+        ↓
+navigate("/books/:bookId/study/session")
+        ↓
+StudySession lee session desde store
+```
+
+---
+
+# 19. Problema anterior con Zustand
+
+Se presentó este error:
+
+```text
+The result of getSnapshot should be cached to avoid an infinite loop
+```
+
+y:
+
+```text
+Maximum update depth exceeded
+```
+
+La causa estuvo relacionada con un selector/snapshot que devolvía una referencia nueva constantemente.
+
+El problema fue corregido.
+
+Al momento actual:
+
+- No aparecen advertencias.
+- No aparece el error de profundidad máxima.
+- La sesión se renderiza correctamente.
+
+Importante: evitar selectors de Zustand que construyan objetos nuevos innecesariamente en cada render, por ejemplo:
+
+```ts
+useStore((state) => ({
+  a: state.a,
+  b: state.b,
+}))
+```
+
+sin un mecanismo de igualdad adecuado.
+
+Preferir selectors individuales cuando sea suficiente:
+
+```ts
+const session = useStudySessionStore(
+  (state) => state.session
+);
+```
+
+---
+
+# 20. StudySession
+
+Archivo aproximado:
+
+```text
+src/components/study/StudySession/StudySession.tsx
+```
+
+Obtiene la sesión:
+
+```ts
+const session = useStudySessionStore(
+  (state) => state.session
+);
+```
+
+También utiliza:
+
+```ts
+useState<string | null>(null)
+```
+
+para:
+
+```ts
+selectedAnswer
+```
+
+y:
+
+```ts
+useState(false)
+```
+
+para:
+
+```ts
+isAnswered
+```
+
+La pregunta actual se obtiene con:
+
+```ts
+const currentQuestion =
+  session.questions[
+    session.currentQuestionIndex
+  ];
+```
+
+La respuesta correcta se determina mediante:
+
+```ts
+const isCorrect =
+  selectedAnswer ===
+  currentQuestion.bookQuestion.correctAnswer;
+```
+
+Antes de acceder a `session`, se debe manejar:
+
+```ts
+if (!session) {
+  return null;
+}
+```
+
+Esto también evita errores de TypeScript como:
+
+```text
+'session' is possibly 'null'
+```
+
+---
+
+# 21. useNavigate y reglas de Hooks
+
+Se presentó este error:
+
+```text
+React Hook "useNavigate" is called conditionally.
+```
+
+La causa fue colocar:
+
+```ts
+useNavigate()
+```
+
+después de un retorno condicional.
+
+Los Hooks deben ejecutarse siempre en el mismo orden.
+
+La forma correcta:
+
+```ts
+export default function StudySession() {
+  const navigate = useNavigate();
+
+  const session = useStudySessionStore(
+    (state) => state.session
+  );
+
+  if (!session) {
+    return null;
+  }
+
+  // resto
+}
+```
+
+Nunca:
+
+```ts
+if (!session) {
+  return null;
+}
+
+const navigate = useNavigate();
+```
+
+---
+
+# 22. AnswerOption
+
+Se creó:
+
+```text
+src/components/study/AnswerOption/
+```
+
+Contiene:
+
+```text
+AnswerOption.tsx
+AnswerOption.module.css
+```
+
+No se creó un `index.ts` interno porque el proyecto ya tiene:
+
+```text
+src/components/study/index.ts
+```
+
+y se decidió exportar desde ese archivo central.
+
+---
+
+# 23. AnswerOption.tsx
+
+El componente representa una opción de respuesta.
+
+La estructura evolucionó para soportar:
+
+```ts
+label
+selected
+disabled
+correct
+incorrect
+onClick
+```
+
+Conceptualmente:
+
+```ts
+interface Props {
+  label: string;
+  selected: boolean;
+  disabled: boolean;
+  correct?: boolean;
+  incorrect?: boolean;
+  onClick(): void;
+}
+```
+
+El componente utiliza:
+
+```tsx
+<InfoCard>
+```
+
+como base visual.
+
+La selección previa ya aplicaba un borde y fondo visual.
+
+Importante: se pidió explícitamente mantener ese comportamiento.
+
+La incorporación del feedback correcto/incorrecto **no debe eliminar la apariencia de selección existente**.
+
+---
+
+# 24. AnswerOption — feedback visual
+
+Cuando se responde:
+
+- La respuesta correcta debe mostrar feedback positivo.
+- Una respuesta incorrecta seleccionada debe mostrar feedback negativo.
+- Las opciones deben quedar deshabilitadas después de responder.
+
+La lógica conceptual es:
+
+```ts
+correct={isAnswered && option === correctAnswer}
+```
+
+e:
+
+```ts
+incorrect={
+  isAnswered &&
+  selectedAnswer === option &&
+  option !== correctAnswer
+}
+```
+
+La respuesta correcta debe resaltarse incluso si el usuario seleccionó una incorrecta.
+
+---
+
+# 25. Indicador circular de AnswerOption
+
+La opción tiene:
+
+```tsx
+<div className={styles.indicator}>
+  <div className={styles.dot} />
+</div>
+```
+
+Durante el desarrollo hubo confusión porque se utilizaban variables inexistentes:
+
+```css
+--color-border
+--color-primary
+```
+
+Esto hacía que algunos colores no se vieran correctamente.
+
+El código debe utilizar variables existentes:
+
+```css
+var(--border)
+var(--primary)
+```
+
+La estructura visual general es:
+
+```css
+.option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.indicator {
+  width: 40px;
+  height: 40px;
+
+  border: 2px solid var(--border);
+  border-radius: 999px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  transition: all 0.2s ease;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+
+  border-radius: 999px;
+
+  background: transparent;
+
+  transition: all 0.2s ease;
+}
+
+.option span {
+  flex: 1;
+  text-align: left;
+}
+```
+
+Después pueden aplicarse clases de estado.
+
+---
+
+# 26. Feedback colors
+
+Se decidió agregar variables de feedback directamente a:
+
+```text
+src/styles/theme.css
+```
+
+para mantener consistencia.
+
+La idea es tener variables como:
+
+```css
+--success
+--success-light
+--danger
+--danger-light
+```
+
+Los nombres exactos deben mantenerse consistentes con lo que ya se haya implementado.
+
+Estas variables se usan para:
+
+- Respuesta correcta.
+- Respuesta incorrecta.
+- Bordes.
+- Fondos.
+- Indicador.
+- Punto interior.
+
+---
+
+# 27. feedbackColor
+
+Se implementó una constante:
+
+```ts
+feedbackColor
+```
+
+para centralizar el color que debe utilizar una opción dependiendo de su estado.
+
+La lógica conceptual:
+
+```ts
+const feedbackColor =
+  correct
+    ? "var(--success)"
+    : incorrect
+      ? "var(--danger)"
+      : selected
+        ? "var(--primary)"
+        : undefined;
+```
+
+El objetivo es evitar repetir lógica visual dispersa.
+
+Esta constante se utiliza para mantener consistencia entre:
+
+- borde
+- indicador
+- punto interior
+
+---
+
+# 28. Flujo de respuesta
+
+El flujo actual es:
+
+```text
+Usuario selecciona una respuesta
+        ↓
+selectedAnswer cambia
+        ↓
+Usuario confirma / responde
+        ↓
+isAnswered = true
+        ↓
+Se calcula si es correcta
+        ↓
+Si es correcta:
+    incrementCorrectAnswers()
+        ↓
+Las opciones quedan bloqueadas
+        ↓
+Se muestra feedback visual
+        ↓
+Usuario pulsa siguiente
+```
+
+---
+
+# 29. handleAnswer
+
+Existe una función:
+
+```ts
+handleAnswer
+```
+
+Su responsabilidad es confirmar la respuesta seleccionada.
+
+Conceptualmente:
+
+```ts
+function handleAnswer() {
+  if (!selectedAnswer || isAnswered) {
+    return;
+  }
+
+  setIsAnswered(true);
+
+  if (
+    selectedAnswer ===
+    currentQuestion.bookQuestion.correctAnswer
+  ) {
+    incrementCorrectAnswers();
+  }
+}
+```
+
+Debe evitarse permitir responder varias veces.
+
+---
+
+# 30. handleNextQuestion
+
+Existe:
+
+```ts
+handleNextQuestion
+```
+
+Su responsabilidad es avanzar.
+
+Conceptualmente:
+
+```ts
+function handleNextQuestion() {
+  const isLastQuestion =
+    session.currentQuestionIndex ===
+    session.questions.length - 1;
+
+  if (isLastQuestion) {
+    console.log("Fin de la sesión");
+    return;
+  }
+
+  nextQuestion();
+
+  setSelectedAnswer(null);
+  setIsAnswered(false);
+}
+```
+
+Durante las pruebas, al llegar a la última pregunta aparecía correctamente:
+
+```text
+Fin de la sesión
+```
+
+en consola.
+
+---
+
+# 31. isLastQuestion
+
+La constante:
+
+```ts
+const isLastQuestion =
+  session.currentQuestionIndex ===
+  session.questions.length - 1;
+```
+
+puede utilizarse tanto para:
+
+- lógica interna
+- texto del botón
+
+Es recomendable declararla después de validar que `session` existe y antes del `return`:
+
+```ts
+if (!session) {
+  return null;
+}
+
+const currentQuestion =
+  session.questions[
+    session.currentQuestionIndex
+  ];
+
+const isLastQuestion =
+  session.currentQuestionIndex ===
+  session.questions.length - 1;
+```
+
+Así puede utilizarse en el JSX:
+
+```tsx
+<Button>
+  {isLastQuestion ? "Finalizar" : "Siguiente"}
+</Button>
+```
+
+---
+
+# 32. Última pregunta
+
+El comportamiento actual esperado es:
+
+```text
+Preguntas intermedias:
+"Siguiente"
+```
+
+Última pregunta:
+
+```text
+"Finalizar"
+```
+
+Al finalizar debe ocurrir navegación hacia una futura pantalla de resultados.
+
+Actualmente ya se dejó encaminado el comportamiento de detectar la última pregunta.
+
+La siguiente evolución debe reemplazar:
+
+```ts
+console.log("Fin de la sesión");
+```
+
+por una navegación real.
+
+---
+
+# 33. Navegación
+
+El router está en:
+
+```text
+src/app/router/AppRouter.tsx
+```
+
+Utiliza:
+
+```tsx
+BrowserRouter
+Routes
+Route
+Navigate
+useLocation
+AnimatePresence
+```
+
+También utiliza:
+
+```tsx
+<AnimatePresence mode="wait">
+```
+
+y:
+
+```tsx
+<Routes
+  location={location}
+  key={location.pathname}
+>
+```
+
+para animaciones entre rutas.
+
+---
+
+# 34. Rutas importantes
+
+Las rutas incluyen:
+
+```text
+/
+ /books
+ /books/:bookId
+ /books/:bookId/study
+ /movies
+ /review
+ /admin
+```
+
+La ruta de estudio se reorganizó.
+
+Anteriormente existía:
+
+```text
+/study
+/study/session
+```
+
+Esto causó un problema porque el flujo iniciado desde un libro debía mantener el contexto del libro.
+
+Actualmente el flujo correcto está relacionado con:
+
+```text
+/books/:bookId/study
+```
+
+y la sesión correspondiente.
+
+---
+
+# 35. Problema anterior con StudyPage
+
+Existía:
+
+```text
+StudyPage.tsx
+```
+
+con una ruta como:
+
+```tsx
+<Route
+  path="/books/:bookId/study"
+  element={<StudyPage />}
+/>
+```
+
+También existía un configurador en:
+
+```text
+BookDetailPage.tsx
+```
+
+Esto generó confusión porque se renderizaban diferentes flujos.
+
+El problema observado era:
+
+Al pulsar:
+
+```text
+Comenzar estudio
+```
+
+la URL permanecía o regresaba a algo similar a:
+
+```text
+http://localhost:5173/books/hp5
+```
+
+y la pantalla de sesión nunca se montaba.
+
+La solución fue reorganizar el flujo y eliminar referencias duplicadas a `StudyPage`.
+
+Después de eliminar sus referencias y limpiar la estructura, la navegación comenzó a funcionar correctamente.
+
+---
+
+# 36. BookDetailPage
+
+`BookDetailPage.tsx` utiliza:
+
+```ts
+useParams()
+```
+
+para obtener:
+
+```ts
+bookId
+```
+
+y muestra:
+
+```tsx
+<StudyConfigurator />
+```
+
+El componente conceptual es:
+
+```tsx
+export default function BookDetailPage() {
+  const { bookId } = useParams();
+
+  return (
+    <PageLayout>
+      <PageHeader
+        title={bookId?.toUpperCase() ?? ""}
+        subtitle="Selecciona cómo quieres estudiar."
+        icon={<BookOpen size={34} />}
+      />
+
+      <StudyConfigurator />
+    </PageLayout>
+  );
+}
+```
+
+---
+
+# 37. StudySessionPage
+
+Archivo:
+
+```text
+src/app/pages/StudySessionPage.tsx
+```
+
+Su responsabilidad debe ser mínima:
+
+```tsx
+import { StudySession } from "@/components/study";
+
+export default function StudySessionPage() {
+  return <StudySession />;
+}
+```
+
+---
+
+# 38. pages/index.ts
+
+El archivo exporta las páginas:
+
+```ts
+export { default as HomePage } from "./HomePage";
+export { default as BooksPage } from "./BooksPage";
+export { default as BookDetailPage } from "./BookDetailPage";
+export { default as MoviesPage } from "./MoviesPage";
+export { default as ReviewPage } from "./ReviewPage";
+export { default as AdminPage } from "./AdminPage";
+export { default as StudySessionPage } from "./StudySessionPage";
+```
+
+`StudyPage` fue eliminado después de limpiar las rutas y referencias duplicadas.
+
+---
+
+# 39. Estudio actual: flujo completo
+
+El flujo deseado actualmente es:
+
+```text
+BooksPage
+    ↓
+Seleccionar libro
+    ↓
+BookDetailPage
+    ↓
+StudyConfigurator
+    ↓
+StudyEngine.createSession()
+    ↓
+Guardar sesión en Zustand
+    ↓
+Navegar a StudySessionPage
+    ↓
+StudySession
+    ↓
+Seleccionar respuesta
+    ↓
+Responder
+    ↓
+Feedback correcto/incorrecto
+    ↓
+Siguiente
+    ↓
+Última pregunta
+    ↓
+Finalizar
+    ↓
+Resultados
+```
+
+La parte hasta:
+
+```text
+Última pregunta → Finalizar
+```
+
+está funcional.
+
+La pantalla de resultados es el siguiente paso lógico.
+
+---
+
+# 40. QuestionHeader
+
+Actualmente se utiliza para mostrar información como:
+
+```text
+Libro
+Pregunta actual
+Total
+```
+
+Inicialmente tenía valores hardcodeados como:
+
+```tsx
+<QuestionHeader
+  book="Harry Potter y la Orden del Fénix"
+  current={1}
+  total={25}
+/>
+```
+
+Posteriormente debe asegurarse de obtener los valores reales de:
+
+```ts
+session.configuration
+session.currentQuestionIndex
+session.questions.length
+```
+
+Por ejemplo:
+
+```ts
+current: session.currentQuestionIndex + 1
+```
+
+y:
+
+```ts
+total: session.questions.length
+```
+
+El título del libro debe obtenerse desde la configuración/datos del libro.
+
+---
+
+# 41. QuestionCard
+
+Actualmente recibe una pregunta.
+
+Inicialmente se probó con:
+
+```tsx
+<QuestionCard
+  question="¿Quién era el director de Hogwarts durante el quinto año de Harry?"
+/>
+```
+
+Debe evolucionar para utilizar:
+
+```ts
+currentQuestion.bookQuestion.question
+```
+
+o el nombre exacto del campo definido en `BookQuestion`.
+
+---
+
+# 42. QuestionAmountSelector
+
+Permite elegir:
+
+```text
+Una cantidad específica
+```
+
+o:
+
+```text
+"all"
+```
+
+El `StudyEngine` maneja:
+
+```ts
+if (configuration.questionAmount !== "all") {
+  questions = questions.slice(
+    0,
+    configuration.questionAmount
+  );
+}
+```
+
+---
+
+# 43. Lógica de categorías
+
+Actualmente:
+
+```ts
+questions = questions.filter((question) =>
+  configuration.categories.includes(question.category)
+);
+```
+
+Esto implica que si:
+
+```ts
+configuration.categories
+```
+
+está vacío, el resultado será un array vacío.
+
+Esto debe revisarse según la UX deseada.
+
+Probablemente sería mejor:
+
+```ts
+if (configuration.categories.length > 0) {
+  questions = questions.filter((question) =>
+    configuration.categories.includes(question.category)
+  );
+}
+```
+
+Así:
+
+```text
+Sin categorías seleccionadas
+```
+
+podría significar:
+
+```text
+Todas las categorías
+```
+
+Esta decisión debe tomarse explícitamente en un próximo sprint.
+
+---
+
+# 44. LocalBookQuestionRepository
+
+Actualmente se utiliza una implementación local:
+
+```ts
+new LocalBookQuestionRepository()
+```
+
+El objetivo es desacoplar la fuente de datos.
+
+En el futuro:
+
+```text
+LocalBookQuestionRepository
+```
+
+podrá ser sustituido por:
+
+```text
+FirebaseBookQuestionRepository
+```
+
+sin modificar:
+
+```text
+StudyEngine
+StudyConfigurator
+StudySession
+```
+
+---
+
+# 45. Firebase
+
+El proyecto tiene Firebase como parte de su arquitectura.
+
+Las áreas relevantes son:
+
+```text
+Authentication
+Firestore
+```
+
+Durante el desarrollo anterior se configuró:
+
+```text
+Build > Authentication > Sign-in method
+```
+
+y se habilitó autenticación por email.
+
+También se probó sincronización entre navegadores.
+
+La siguiente integración importante es conectar el banco de preguntas a Firestore.
+
+---
+
+# 46. Modelo recomendado para Firestore
+
+Una estructura razonable sería:
+
+```text
+books
+```
+
+o una colección específica:
+
+```text
+questions
+```
+
+Por simplicidad, se recomienda:
+
+```text
+questions/{questionId}
+```
+
+Cada documento podría tener:
+
+```ts
+interface BookQuestion {
+  id: string;
+
+  bookId: BookId;
+
+  chapter: number;
+
+  category: string;
+
+  question: string;
+
+  correctAnswer: string;
+
+  // opcional si se almacenan distractores
+  incorrectAnswers?: string[];
+
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
+}
+```
+
+Ejemplo conceptual:
+
+```json
+{
+  "bookId": "hp5",
+  "chapter": 1,
+  "category": "Personaje",
+  "question": "¿Quién ...?",
+  "correctAnswer": "Respuesta correcta"
+}
+```
+
+---
+
+# 47. Recomendación importante sobre respuestas
+
+Actualmente el generador intenta crear distractores utilizando otras preguntas.
+
+Una alternativa más robusta es guardar explícitamente:
+
+```ts
+incorrectAnswers: string[]
+```
+
+en Firestore.
+
+Modelo recomendado:
+
+```ts
+interface BookQuestion {
+  id: string;
+
+  bookId: BookId;
+
+  chapter: number;
+
+  category: QuestionCategory;
+
+  question: string;
+
+  correctAnswer: string;
+
+  incorrectAnswers: string[];
+}
+```
+
+Ventajas:
+
+- Control total sobre distractores.
+- Respuestas más coherentes.
+- Menos riesgo de opciones absurdas.
+- Menos dependencia del tamaño del banco.
+- Facilita preguntas con respuestas muy específicas.
+
+Otra posibilidad es mantener ambos sistemas:
+
+```text
+Distractores manuales
++
+Fallback generado automáticamente
+```
+
+---
+
+# 48. Importación de preguntas
+
+Una funcionalidad planeada desde el inicio es:
+
+```text
+Importar preguntas desde Excel o CSV.
+```
+
+El flujo recomendado:
+
+```text
+CSV / XLSX
+      ↓
+Parser
+      ↓
+Validación
+      ↓
+Transformación a BookQuestion
+      ↓
+Preview
+      ↓
+Confirmación
+      ↓
+Firestore
+```
+
+Esto debería implementarse en el área:
+
+```text
+Admin
+```
+
+---
+
+# 49. Admin
+
+Existe una página:
+
+```text
+AdminPage
+```
+
+La intención futura es permitir:
+
+- Crear preguntas.
+- Editar preguntas.
+- Eliminar preguntas.
+- Filtrar preguntas.
+- Buscar.
+- Importar desde CSV/XLSX.
+- Filtrar por libro.
+- Filtrar por capítulo.
+- Filtrar por categoría.
+
+La inspiración visual mencionada anteriormente fue un sistema de filtros similar al de Mercado Libre.
+
+---
+
+# 50. Smart Review / Repaso inteligente
+
+Es una funcionalidad planeada.
+
+La idea:
+
+```text
+Usuario responde preguntas
+        ↓
+Se registra desempeño
+        ↓
+Preguntas incorrectas reciben prioridad
+        ↓
+Las preguntas difíciles aparecen más frecuentemente
+```
+
+Esto puede requerir un modelo como:
+
+```ts
+interface UserQuestionProgress {
+  userId: string;
+  questionId: string;
+
+  attempts: number;
+  correctAttempts: number;
+  incorrectAttempts: number;
+
+  lastAnsweredAt: Timestamp;
+
+  confidence?: number;
+}
+```
+
+También se podría implementar una puntuación de prioridad:
+
+```text
+Más errores
++
+Más tiempo desde último repaso
++
+Baja tasa de aciertos
+=
+Mayor prioridad
+```
+
+---
+
+# 51. Modos de estudio
+
+Existe:
+
+```text
+StudyModeSelector
+```
+
+La arquitectura ya contempla:
+
+```ts
+configuration.studyMode
+```
+
+Pero es necesario revisar qué modos están definidos exactamente y asegurar que afecten realmente el comportamiento del motor.
+
+Posibles modos:
+
+```text
+Normal
+Repaso inteligente
+Aleatorio
+Solo pendientes
+Solo errores
+```
+
+No deben añadirse todos automáticamente; deben respetarse los tipos actuales del proyecto.
+
+---
+
+# 52. PWA
+
+El proyecto tiene como objetivo ser instalable.
+
+Pendiente:
+
+- Configurar manifest.
+- Iconos.
+- Service worker.
+- Estrategia de caché.
+- Funcionamiento offline básico.
+- Verificar instalación en móvil.
+
+No se debe implementar una PWA compleja antes de estabilizar la arquitectura funcional.
+
+---
+
+# 53. Logo
+
+El logo se encuentra en:
+
+```text
+src/assets/images/fluffy-logo.png
+```
+
+Se utiliza mediante importación:
+
+```tsx
+import fluffyLogo from "@/assets/images/fluffy-logo.png";
+```
+
+En:
+
+```text
+Hero.tsx
+```
+
+Ejemplo:
+
+```tsx
+<img
+  src={fluffyLogo}
+  alt="Fluffys"
+/>
+```
+
+Se presentó temporalmente:
+
+```text
+GET http://localhost:5173/src/assets/images/fluffy-logo.png
+net::ERR_CONNECTION_REFUSED
+```
+
+La causa fue que el servidor de Vite había sido detenido:
+
+```bash
+npm run dev
+```
+
+No era un problema del import ni de la ruta.
+
+---
+
+# 54. index.html
+
+Actualmente tiene una estructura similar a:
+
+```html
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="/favicon.svg"
+    />
+
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+
+    <title>fluffys-2</title>
+  </head>
+
+  <body>
+    <div id="root"></div>
+
+    <script
+      type="module"
+      src="/src/main.tsx"
+    ></script>
+  </body>
+</html>
+```
+
+Pendiente:
+
+- Cambiar idioma si corresponde.
+- Cambiar título final.
+- Configurar metadata.
+- Configurar favicon definitivo.
+- Configurar manifest PWA.
+
+---
+
+# 55. Alias de imports
+
+El proyecto utiliza:
+
+```ts
+@/
+```
+
+Ejemplos:
+
+```ts
+import { PageLayout } from "@/components/layout";
+
+import { StudySession } from "@/components/study";
+
+import type { StudySession } from "@/types";
+
+import { shuffle } from "@/lib/utils/shuffle";
+```
+
+Se debe mantener esta convención.
+
+Evitar imports largos como:
+
+```ts
+../../../../components
+```
+
+---
+
+# 56. Barrel exports
+
+Existen archivos `index.ts` para centralizar exports.
+
+Por ejemplo:
+
+```text
+src/components/study/index.ts
+```
+
+Los componentes nuevos dentro de `study` deben exportarse desde el índice existente cuando tenga sentido.
+
+No es obligatorio crear un `index.ts` dentro de cada subcarpeta.
+
+Ejemplo:
+
+```ts
+export { default as AnswerOption }
+  from "./AnswerOption/AnswerOption";
+```
+
+---
+
+# 57. CSS Modules
+
+La convención utilizada:
+
+```text
+Component.tsx
+Component.module.css
+```
+
+Ejemplo:
+
+```text
+AnswerOption.tsx
+AnswerOption.module.css
+```
+
+Import:
+
+```ts
+import styles from "./AnswerOption.module.css";
+```
+
+Uso:
+
+```tsx
+<div className={styles.option}>
+```
+
+---
+
+# 58. Error anterior de hover
+
+Hubo confusión entre selectores como:
+
+```css
+.card:hover
+```
+
+y código mostrado con caracteres escapados.
+
+El CSS real debe utilizar sintaxis normal:
+
+```css
+.card:hover {
+  transform: translateY(-6px);
+}
+```
+
+No:
+
+```text
+.card\:hover
+```
+
+La sintaxis con `\:` puede aparecer cuando texto de código se transforma o escapa, pero no debe copiarse literalmente como selector normal.
+
+---
+
+# 59. InfoCard hover
+
+La tarjeta clickeable utiliza:
+
+```css
+.clickable {
+  cursor: pointer;
+
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.clickable:hover {
+  transform: translateY(-6px);
+
+  box-shadow:
+    0 18px 36px rgba(0, 0, 0, 0.12);
+}
+```
+
+La selección de una respuesta añade estilos adicionales sin eliminar el comportamiento hover.
+
+---
+
+# 60. Diseño visual
+
+La estética deseada del proyecto es:
+
+- Elegante.
+- Inspirada en Harry Potter.
+- Fondo tipo papel.
+- Rojo oscuro.
+- Dorado.
+- Marrón.
+- Tarjetas claras.
+- Bordes redondeados.
+- Elevación sutil en hover.
+
+Paleta principal:
+
+```text
+Rojo:    #641e1e
+Dorado:  #c39a1c
+Marrón:  #3d2f22
+Gris:    #717679
+Papel:   #efeee9
+```
+
+---
+
+# 61. Decisiones técnicas importantes
+
+## React + TypeScript
+
+Se eligió por:
+
+- Tipado.
+- Componentización.
+- Ecosistema.
+- Escalabilidad.
+- Facilidad para una PWA.
+
+## Vite
+
+Se utiliza por:
+
+- Desarrollo rápido.
+- Configuración sencilla.
+- Buen soporte para React y TypeScript.
+
+## Zustand
+
+Se eligió para:
+
+- Estado global simple.
+- Menos boilerplate que Redux.
+- Adecuado para una sesión de estudio.
+
+## Repository Pattern
+
+Se eligió para desacoplar Firebase del resto de la aplicación.
+
+## StudyEngine
+
+Se creó para evitar colocar lógica de filtrado y generación de sesiones dentro de componentes React.
+
+## CSS Modules
+
+Se eligieron para:
+
+- Evitar colisiones.
+- Mantener estilos junto a componentes.
+- No depender completamente de Tailwind.
+
+## Firebase
+
+Se eligió para:
+
+- Firestore.
+- Authentication.
+- Backend sin administrar servidor propio.
+
+---
+
+# 62. Estado actual del proyecto
+
+Al momento de este documento:
+
+## Funcional
+
+- Navegación principal.
+- Selección de libro.
+- Configuración de estudio.
+- Selección de sección.
+- Selección de capítulos.
+- Selección de categorías.
+- Selección de cantidad.
+- Selección de modo.
+- Creación de sesión.
+- Guardado de sesión en Zustand.
+- Navegación a StudySession.
+- Renderizado de preguntas.
+- Selección visual de respuesta.
+- Confirmación de respuesta.
+- Feedback visual correcto/incorrecto.
+- Deshabilitar respuestas después de contestar.
+- Contador de respuestas correctas.
+- Avanzar entre preguntas.
+- Detectar última pregunta.
+- Texto "Finalizar" en la última pregunta.
+- Lint sin errores.
+- Build sin errores.
+
+## Pendiente o parcialmente funcional
+
+- Generación robusta de múltiples opciones.
+- Probar respuestas incorrectas con datos reales.
+- Pantalla final de resultados.
+- Navegación real al finalizar.
+- Persistencia de preguntas en Firebase.
+- Repositorio Firebase.
+- Admin.
+- Importación CSV/XLSX.
+- Repaso inteligente.
+- Persistencia de progreso.
+- Autenticación integrada completamente en UI.
+- PWA.
+- Tests.
+
+---
+
+# 63. Próximo sprint recomendado
+
+## Sprint: Resultados de sesión
+
+Este es el siguiente paso recomendado.
+
+### Objetivo
+
+Cuando el usuario termine la última pregunta:
+
+```text
+Finalizar
+```
+
+debe navegar a una pantalla de resultados.
+
+### Crear
+
+```text
+StudyResultsPage
+StudyResults
+```
+
+### Mostrar
+
+- Libro.
+- Preguntas totales.
+- Respuestas correctas.
+- Respuestas incorrectas.
+- Porcentaje de aciertos.
+- Botón para volver a estudiar.
+- Posiblemente botón para repetir sesión.
+
+### Fórmula
+
+```ts
+const incorrectAnswers =
+  totalQuestions - correctAnswers;
+```
+
+```ts
+const percentage =
+  totalQuestions === 0
+    ? 0
+    : Math.round(
+        (correctAnswers / totalQuestions) * 100
+      );
+```
+
+### Navegación
+
+Al finalizar:
+
+```ts
+navigate(
+  "/books/:bookId/study/results"
+);
+```
+
+La ruta exacta debe seguir la convención que finalmente tenga el router.
+
+---
+
+# 64. Segundo paso recomendado: mejorar AnswerGenerator
+
+Antes de considerar el sistema de preguntas terminado se debe garantizar que cada pregunta tenga varias opciones.
+
+Opciones:
+
+## Opción A — Distractores explícitos
+
+Guardar:
+
+```ts
+incorrectAnswers: string[]
+```
+
+Ventaja:
+
+- Máximo control.
+
+## Opción B — Generación automática
+
+Buscar respuestas de otras preguntas con:
+
+- Misma categoría.
+- Mismo tipo de respuesta.
+- Preferentemente mismo libro.
+
+## Opción C — Sistema híbrido
+
+```text
+Distractores manuales
+        ↓
+Si faltan:
+        ↓
+Generación automática
+```
+
+Esta es probablemente la opción más robusta.
+
+---
+
+# 65. Tercer paso: Firebase repository
+
+Crear:
+
+```text
+FirebaseBookQuestionRepository
+```
+
+Implementar:
+
+```ts
+BookQuestionRepository
+```
+
+Conceptualmente:
+
+```ts
+export class FirebaseBookQuestionRepository
+  implements BookQuestionRepository {
+
+  async getQuestions(): Promise<BookQuestion[]> {
+    // Firestore
+  }
+}
+```
+
+Después sustituir:
+
+```ts
+new LocalBookQuestionRepository()
+```
+
+por una instancia configurada mediante una capa de composición.
+
+Idealmente evitar crear:
+
+```ts
+new StudyEngine(...)
+```
+
+en cada render del componente.
+
+Una mejora futura sería instanciar dependencias fuera del render o mediante una factory.
+
+---
+
+# 66. Cuarto paso: resultados y progreso persistente
+
+Después de mostrar resultados, guardar progreso por usuario.
+
+Posible estructura:
+
+```text
+users/{userId}/questionProgress/{questionId}
+```
+
+Documento:
+
+```ts
+interface UserQuestionProgress {
+  questionId: string;
+
+  attempts: number;
+
+  correctAttempts: number;
+
+  incorrectAttempts: number;
+
+  lastAnsweredAt: Timestamp;
+}
+```
+
+Esto permitirá construir:
+
+```text
+Repaso inteligente
+```
+
+---
+
+# 67. Quinto paso: Admin
+
+Implementar:
+
+```text
+Listado de preguntas
+Crear
+Editar
+Eliminar
+Filtrar
+Buscar
+Importar
+```
+
+La UI debe aprovechar:
+
+```text
+InfoCard
+Button
+Section
+Stack
+```
+
+para mantener consistencia.
+
+---
+
+# 68. Sexto paso: importador
+
+Implementar importación CSV primero.
+
+Razón:
+
+- Más simple.
+- Fácil de generar desde Excel.
+- Fácil de validar.
+
+Después añadir:
+
+```text
+XLSX
+```
+
+Flujo:
+
+```text
+Seleccionar archivo
+        ↓
+Leer columnas
+        ↓
+Validar
+        ↓
+Mostrar errores
+        ↓
+Preview
+        ↓
+Confirmar
+        ↓
+Guardar en Firestore
+```
+
+---
+
+# 69. Séptimo paso: PWA
+
+Cuando el flujo funcional esté estable:
+
+- Manifest.
+- Iconos.
+- Service worker.
+- Cache.
+- Instalación.
+- Pruebas en Android/iOS según compatibilidad.
+
+---
+
+# 70. Reglas para futuras modificaciones
+
+## No romper la separación de capas
+
+Evitar:
+
+```tsx
+StudySession
+  ↓
+firebase.firestore directamente
+```
+
+Preferir:
+
+```text
+Component
+  ↓
+Engine / Hook / Feature
+  ↓
+Repository
+  ↓
+Firebase
+```
+
+## No meter toda la lógica en componentes
+
+Si una lógica puede reutilizarse o probarse sin React, probablemente debe estar fuera del componente.
+
+## Mantener tipos centralizados
+
+Preferir:
+
+```ts
+import type { BookQuestion } from "@/types";
+```
+
+## Mantener alias
+
+Preferir:
+
+```ts
+@/
+```
+
+## Mantener CSS variables existentes
+
+Usar:
+
+```css
+--primary
+--secondary
+--text
+--text-light
+--border
+--surface
+--background
+--shadow
+--radius
+```
+
+No inventar variantes como:
+
+```css
+--color-primary
+--color-border
+```
+
+sin actualizar conscientemente el sistema completo.
+
+---
+
+# 71. Comandos habituales
+
+Desarrollo:
+
+```bash
+npm run dev
+```
+
+Lint:
+
+```bash
+npm run lint
+```
+
+Build:
+
+```bash
+npm run build
+```
+
+Siempre ejecutar al terminar cambios importantes:
+
+```bash
+npm run lint
+npm run build
+```
+
+---
+
+# 72. Contexto para continuar inmediatamente
+
+Si una IA retoma el proyecto, el punto exacto recomendado es:
+
+```text
+1. El flujo de StudySession ya funciona.
+2. La última pregunta ya detecta que es la última.
+3. El botón puede mostrar "Finalizar".
+4. Actualmente el final todavía debe convertirse en navegación real.
+5. El siguiente desarrollo debe ser StudyResultsPage.
+6. Después mejorar AnswerGenerator para garantizar distractores.
+7. Después conectar preguntas reales a Firebase mediante repository.
+```
+
+La prioridad recomendada es:
+
+```text
+Sprint siguiente:
+    Resultados de sesión
+        ↓
+Mejorar AnswerGenerator
+        ↓
+FirebaseBookQuestionRepository
+        ↓
+Persistencia de progreso
+        ↓
+Repaso inteligente
+        ↓
+Admin
+        ↓
+Importador CSV/XLSX
+        ↓
+PWA
+```
+
+---
+
+# 73. Nota final para la IA que continúe el proyecto
+
+Este proyecto está siendo desarrollado de forma incremental y educativa.
+
+El usuario tiene una base fuerte en:
+
+- HTML
+- CSS
+- JavaScript
+
+y está aprendiendo progresivamente:
+
+- React
+- TypeScript
+- Vite
+- Arquitectura de aplicaciones
+- Firebase
+- Zustand
+- Patrones de diseño
+
+Por ello, al proponer cambios:
+
+1. Explicar primero qué se va a cambiar y por qué.
+2. Avanzar por pasos.
+3. No asumir que el usuario ya creó archivos que todavía no se han mencionado.
+4. Indicar exactamente:
+   - qué archivo abrir,
+   - qué código agregar,
+   - dónde colocarlo,
+   - qué código reemplazar.
+5. Evitar cambios masivos innecesarios.
+6. Mantener la arquitectura que ya existe.
+7. Después de cambios importantes, comprobar:
+   - `npm run lint`
+   - `npm run build`
+
+El proyecto debe evolucionar hacia una aplicación mantenible, no solamente hacia una aplicación que "funcione".
+
+---
+
+**Fin del documento técnico de migración de Fluffys.**

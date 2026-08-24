@@ -1,0 +1,42 @@
+.card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  cursor: pointer;
+  transition: 0.25s;
+  user-select: none;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+}
+
+.card:active {
+  transform: scale(0.98);
+}
+
+.icon {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+}
+
+.content {
+  flex: 1;
+}
+
+.content h3 {
+  margin: 0;
+}
+
+.content p {
+  margin-top: 6px;
+
+  color: var(--text-light);
+}
+
+.selected {
+  outline: 2px solid var(--primary);
+}
