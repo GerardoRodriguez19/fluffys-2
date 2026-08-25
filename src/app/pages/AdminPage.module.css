@@ -92,3 +92,18 @@
 .templateLink:hover {
   color: var(--primary-hover);
 }
+
+@media (max-width: 900px) {
+  .questionRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .actions {
+    width: 100%;
+  }
+
+  .actions button {
+    width: 100%;
+  }
+}

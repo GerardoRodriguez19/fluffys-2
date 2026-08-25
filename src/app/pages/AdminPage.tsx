@@ -208,9 +208,14 @@ export default function AdminPage() {
       const result = await parseQuestionsXlsx(file);
 
       setImportErrors(
-        result.errors.map((error: ParseError) => `Fila ${error.row}: ${error.message}`)
+        [
+          ...result.errors.slice(0, 30).map((error: ParseError) => `Fila ${error.row}: ${error.message}`),
+          ...(result.errors.length > 30
+            ? [`…y ${result.errors.length - 30} errores más`]
+            : []),
+        ]
       );
-      setImportPreview(result.errors.length > 0 ? [] : result.questions);
+      setImportPreview(result.questions);
     } catch (err) {
       setImportErrors(["No se pudo leer el archivo Excel."]);
       setImportPreview([]);
@@ -274,7 +279,7 @@ export default function AdminPage() {
         title="Administración"
         subtitle="Gestiona el banco de preguntas."
         action={
-          <Button variant="secondary" onClick={handleLogout}>
+          <Button variant="secondary" size="sm" onClick={handleLogout}>
             Cerrar sesión
           </Button>
         }
@@ -365,7 +370,7 @@ export default function AdminPage() {
 
         <Section
           title="Importar Excel"
-          description="Usa la plantilla con listas para bookId y category."
+          description="Acepta la plantilla de Fluffys 2 o el Excel exportado desde Fluffys 1.0."
         >
           <Stack gap="md">
             <a

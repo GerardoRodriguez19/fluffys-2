@@ -14,22 +14,18 @@ export default function PageHeader({ title, subtitle, icon, action }: Props) {
 
   return (
     <header className="page-header">
-      <button
-        className="back-button"
+      <div className="page-header-bar">
+        <button className="back-button" onClick={() => navigate("/")}>
+          <APP_ICONS.back size={18} />
+          Inicio
+        </button>
 
-        onClick={() => navigate("/")}
-      >
-        <APP_ICONS.back size={18} />
-        Inicio
-      </button>
+        {action ? <div className="page-header-action">{action}</div> : null}
+      </div>
 
-      <div className="page-header-top">
-        <div className="page-title">
-          {icon}
-          <h1>{title}</h1>
-        </div>
-
-        {action}
+      <div className="page-title">
+        {icon}
+        <h1>{title}</h1>
       </div>
 
       <p>{subtitle}</p>

@@ -18,6 +18,9 @@ export class FirebaseBookQuestionRepository implements BookQuestionRepository {
         category: data.category,
         prompt: data.prompt,
         correctAnswer: data.correctAnswer,
+        incorrectAnswers: Array.isArray(data.incorrectAnswers)
+          ? data.incorrectAnswers.filter(Boolean)
+          : undefined,
       } satisfies BookQuestion;
     });
   }
@@ -32,6 +35,7 @@ export class FirebaseBookQuestionRepository implements BookQuestionRepository {
       category: question.category,
       prompt: question.prompt,
       correctAnswer: question.correctAnswer,
+      incorrectAnswers: question.incorrectAnswers?.filter(Boolean),
     };
 
     await setDoc(doc(db, "questions", id), {
@@ -40,6 +44,9 @@ export class FirebaseBookQuestionRepository implements BookQuestionRepository {
       category: payload.category,
       prompt: payload.prompt,
       correctAnswer: payload.correctAnswer,
+      ...(payload.incorrectAnswers?.length
+        ? { incorrectAnswers: payload.incorrectAnswers }
+        : {}),
     });
 
     return payload;
@@ -53,6 +60,7 @@ export class FirebaseBookQuestionRepository implements BookQuestionRepository {
       category: question.category,
       prompt: question.prompt,
       correctAnswer: question.correctAnswer,
+      incorrectAnswers: question.incorrectAnswers?.filter(Boolean),
     };
 
     await setDoc(doc(db, "questions", payload.id), {
@@ -61,6 +69,9 @@ export class FirebaseBookQuestionRepository implements BookQuestionRepository {
       category: payload.category,
       prompt: payload.prompt,
       correctAnswer: payload.correctAnswer,
+      ...(payload.incorrectAnswers?.length
+        ? { incorrectAnswers: payload.incorrectAnswers }
+        : {}),
     });
 
     return payload;
