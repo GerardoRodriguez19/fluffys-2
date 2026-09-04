@@ -8,7 +8,7 @@ interface Props {
   disabled?: boolean;
   correct?: boolean;
   incorrect?: boolean;
-  onClick(): void;
+  onClick?(): void;
 }
 
 export default function AnswerOption({

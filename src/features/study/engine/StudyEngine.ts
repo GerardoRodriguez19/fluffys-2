@@ -65,6 +65,7 @@ export class StudyEngine {
       correctAnswers: 0,
       attempts: {},
       hasReachedLastQuestion: sessionQuestions.length <= 1,
+      finished: false,
     };
   }
 }

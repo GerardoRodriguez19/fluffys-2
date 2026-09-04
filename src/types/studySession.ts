@@ -15,4 +15,5 @@ export interface StudySession {
   correctAnswers: number;
   attempts: Record<string, QuestionAttempt>;
   hasReachedLastQuestion: boolean;
+  finished: boolean;
 }

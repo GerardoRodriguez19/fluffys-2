@@ -1,13 +1,17 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AlertTriangle } from "lucide-react";
 import { PageLayout, Stack } from "@/components/layout";
-import { QuestionCard, QuestionHeader, AnswerOption } from "@/components/study";
+import { QuestionCard, QuestionHeader, AnswerOption, QuestionJumpList } from "@/components/study";
 import { InfoCard } from "@/components/ui";
 import { useStudySessionStore } from "@/store/studySession";
 import { books } from "@/data";
 import { progressRepository } from "@/features/study/createStudyEngine";
-import { scoreSession, isQuestionCorrect } from "@/features/study/progress/scoreSession";
+import {
+  scoreSession,
+  isQuestionCorrect,
+  getUnansweredQuestionIds,
+} from "@/features/study/progress/scoreSession";
 import Button from "@/components/ui/Button/Button";
 
 import styles from "./StudySession.module.css";
@@ -26,14 +30,32 @@ export default function StudySession() {
   const nextQuestion = useStudySessionStore((state) => state.nextQuestion);
   const previousQuestion = useStudySessionStore((state) => state.previousQuestion);
   const goToQuestion = useStudySessionStore((state) => state.goToQuestion);
+  const completeSession = useStudySessionStore((state) => state.completeSession);
 
   const [jumpOpen, setJumpOpen] = useState(false);
   const [finalizeOpen, setFinalizeOpen] = useState(false);
   const [pendingUnanswered, setPendingUnanswered] = useState(0);
   const [finalizing, setFinalizing] = useState(false);
+  const finalizingRef = useRef(false);
+
+  useEffect(() => {
+    if (session?.finished && !finalizingRef.current) {
+      navigate(`/books/${session.configuration.bookId}/study/results`, { replace: true });
+    }
+  }, [session, navigate]);
 
   if (!session) {
     return null;
+  }
+
+  if (session.finished) {
+    return (
+      <PageLayout>
+        <Stack justify="center">
+          <p>{finalizing ? "Finalizando..." : "Redirigiendo a resultados..."}</p>
+        </Stack>
+      </PageLayout>
+    );
   }
 
   const book = books.find((item) => item.id === session.configuration.bookId);
@@ -121,15 +143,26 @@ export default function StudySession() {
   }
 
   async function confirmFinalize() {
-    if (!session?.hasReachedLastQuestion || finalizing) {
+    if (!session?.hasReachedLastQuestion || finalizingRef.current) {
       return;
     }
 
-    const activeSession = session;
-    const score = scoreSession(activeSession);
+    const unansweredIds = new Set(getUnansweredQuestionIds(session));
 
+    finalizingRef.current = true;
     setFinalizing(true);
     setFinalizeOpen(false);
+    completeSession();
+
+    const activeSession = useStudySessionStore.getState().session;
+
+    if (!activeSession) {
+      finalizingRef.current = false;
+      setFinalizing(false);
+      return;
+    }
+
+    const score = scoreSession(activeSession);
 
     try {
       for (const question of activeSession.questions) {
@@ -137,6 +170,10 @@ export default function StudySession() {
         const item = activeSession.attempts[id];
 
         if (item?.status === "dontKnow") {
+          if (unansweredIds.has(id)) {
+            await progressRepository.recordAnswer(id, false);
+          }
+
           continue;
         }
 
@@ -147,6 +184,7 @@ export default function StudySession() {
       setCorrectAnswers(score.correct);
       navigate(`/books/${activeSession.configuration.bookId}/study/results`);
     } finally {
+      finalizingRef.current = false;
       setFinalizing(false);
     }
   }
@@ -191,6 +229,10 @@ export default function StudySession() {
                 onClick={() => handleSelect(option)}
               />
             ))}
+
+            <Button variant="secondary" size="lg" disabled={isLocked} onClick={handleDontKnow}>
+              No sé
+            </Button>
           </Stack>
         )}
 
@@ -210,38 +252,7 @@ export default function StudySession() {
           )}
         </div>
 
-        {jumpOpen && (
-          <Stack gap="sm" className={styles.jumpList}>
-            {session.questions.map((question, index) => {
-              const item = session.attempts[question.bookQuestion.id];
-              const preview = question.bookQuestion.prompt.slice(0, 48);
-              const suffix = question.bookQuestion.prompt.length > 48 ? "…" : "";
-              const mark =
-                item?.status === "dontKnow"
-                  ? " · No sé"
-                  : item?.selectedAnswer
-                    ? " · Respondida"
-                    : item?.status === "optionsShown"
-                      ? " · Sin elegir"
-                      : " · Pendiente";
-
-              return (
-                <button
-                  key={question.bookQuestion.id}
-                  type="button"
-                  className={`${styles.jumpItem} ${
-                    index === session.currentQuestionIndex ? styles.jumpItemActive : ""
-                  }`}
-                  onClick={() => handleJump(index)}
-                >
-                  <strong>{index + 1}.</strong> {preview}
-                  {suffix}
-                  {mark}
-                </button>
-              );
-            })}
-          </Stack>
-        )}
+        {jumpOpen && <QuestionJumpList session={session} onSelect={handleJump} />}
 
         {session.hasReachedLastQuestion && (
           <Stack justify="center">
@@ -277,7 +288,7 @@ export default function StudySession() {
 
                 <p className={styles.modalText}>
                   Tienes <strong>{pendingUnanswered}</strong> pregunta
-                  {pendingUnanswered === 1 ? "" : "s"} sin responder. Contarán como incorrectas.
+                  {pendingUnanswered === 1 ? "" : "s"} sin responder. Contarán como “No sé”.
                 </p>
 
                 <Stack gap="sm">

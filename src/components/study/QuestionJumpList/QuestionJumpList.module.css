@@ -1,0 +1,65 @@
+.jumpList {
+  max-height: 320px;
+  overflow: auto;
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.jumpItem {
+  display: block;
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid transparent;
+  border-radius: calc(var(--radius) - 6px);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.jumpItem:hover {
+  background: var(--background);
+}
+
+.jumpItemActive {
+  border-color: var(--primary);
+  background: rgba(100, 30, 30, 0.06);
+}
+
+.jumpItem strong {
+  color: var(--primary);
+}
+
+.jumpItemCorrect {
+  background: var(--success-glow);
+  border-color: var(--success);
+}
+
+.jumpItemCorrect:hover {
+  background: rgba(67, 160, 71, 0.24);
+}
+
+.jumpItemCorrect strong {
+  color: var(--success);
+}
+
+.jumpItemIncorrect {
+  background: var(--danger-glow);
+  border-color: var(--danger);
+}
+
+.jumpItemIncorrect:hover {
+  background: rgba(229, 57, 53, 0.24);
+}
+
+.jumpItemIncorrect strong {
+  color: var(--danger);
+}
+
+.jumpItemCorrect.jumpItemActive,
+.jumpItemIncorrect.jumpItemActive {
+  box-shadow: inset 0 0 0 2px var(--primary);
+}

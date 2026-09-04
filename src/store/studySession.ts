@@ -1,5 +1,6 @@
 import { create } from "zustand";
 
+import { isUnansweredAttempt } from "@/features/study/progress/scoreSession";
 import type { QuestionAttempt, StudySession } from "@/types";
 
 interface StudySessionStore {
@@ -11,6 +12,7 @@ interface StudySessionStore {
   nextQuestion(): void;
   previousQuestion(): void;
   goToQuestion(index: number): void;
+  completeSession(): void;
   clearSession(): void;
 }
 
@@ -34,7 +36,7 @@ export const useStudySessionStore = create<StudySessionStore>((set) => ({
 
   setAttempt: (questionId, attempt) =>
     set((state) => {
-      if (!state.session) {
+      if (!state.session || state.session.finished) {
         return state;
       }
 
@@ -123,6 +125,35 @@ export const useStudySessionStore = create<StudySessionStore>((set) => ({
 
       return {
         session: withReachedLast(state.session, index),
+      };
+    }),
+
+  completeSession: () =>
+    set((state) => {
+      if (!state.session || state.session.finished) {
+        return state;
+      }
+
+      const attempts = { ...state.session.attempts };
+
+      for (const question of state.session.questions) {
+        const id = question.bookQuestion.id;
+
+        if (isUnansweredAttempt(attempts[id])) {
+          attempts[id] = {
+            status: "dontKnow",
+            selectedAnswer: null,
+          };
+        }
+      }
+
+      return {
+        session: {
+          ...state.session,
+          attempts,
+          finished: true,
+          currentQuestionIndex: 0,
+        },
       };
     }),
 

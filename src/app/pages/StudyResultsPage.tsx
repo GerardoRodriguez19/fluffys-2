@@ -1,7 +1,9 @@
 import { Trophy } from "lucide-react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { PageLayout, PageHeader, Stack } from "@/components/layout";
+import { QuestionCard, QuestionHeader, AnswerOption, QuestionJumpList } from "@/components/study";
 import { InfoCard, Button } from "@/components/ui";
 import { books } from "@/data";
 import { scoreSession } from "@/features/study/progress/scoreSession";
@@ -10,9 +12,18 @@ import { useStudySessionStore } from "@/store/studySession";
 
 import styles from "./StudyResultsPage.module.css";
 
+const defaultAttempt = {
+  status: "hidden" as const,
+  selectedAnswer: null,
+};
+
 export default function StudyResultsPage() {
   const session = useStudySessionStore((state) => state.session);
+  const goToQuestion = useStudySessionStore((state) => state.goToQuestion);
+  const nextQuestion = useStudySessionStore((state) => state.nextQuestion);
+  const previousQuestion = useStudySessionStore((state) => state.previousQuestion);
   const navigate = useNavigate();
+  const [jumpOpen, setJumpOpen] = useState(true);
 
   if (!session) {
     return (
@@ -30,6 +41,17 @@ export default function StudyResultsPage() {
   const percentage = score.total > 0 ? Math.round((score.correct / score.total) * 100) : 0;
 
   const book = books.find((book) => book.id === session.configuration.bookId);
+  const currentQuestion = session.questions[session.currentQuestionIndex];
+  const attempt = session.attempts[currentQuestion.bookQuestion.id] ?? defaultAttempt;
+  const selectedAnswer = attempt.selectedAnswer;
+  const isDontKnow = attempt.status === "dontKnow";
+  const correctAnswer = currentQuestion.bookQuestion.correctAnswer;
+  const isFirstQuestion = session.currentQuestionIndex === 0;
+  const isLastQuestion = session.currentQuestionIndex === session.questions.length - 1;
+
+  function handleJump(index: number) {
+    goToQuestion(index);
+  }
 
   return (
     <PageLayout>
@@ -61,6 +83,55 @@ export default function StudyResultsPage() {
               </p>
             </div>
           </InfoCard>
+
+          <Stack gap="md">
+            <QuestionHeader
+              book={book?.title || ""}
+              current={session.currentQuestionIndex + 1}
+              total={session.questions.length}
+            />
+
+            <QuestionCard question={currentQuestion.bookQuestion.prompt} />
+
+            {currentQuestion.options.map((option) => (
+              <AnswerOption
+                key={option}
+                label={option}
+                selected={selectedAnswer === option}
+                disabled
+                correct={option === correctAnswer}
+                incorrect={selectedAnswer === option && option !== correctAnswer}
+              />
+            ))}
+
+            <AnswerOption label="No sé" selected={isDontKnow} disabled incorrect={isDontKnow} />
+
+            <div className={styles.navRow}>
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={isFirstQuestion}
+                onClick={previousQuestion}
+              >
+                Atrás
+              </Button>
+
+              <Button variant="secondary" size="sm" onClick={() => setJumpOpen((open) => !open)}>
+                Ir a pregunta
+              </Button>
+
+              {!isLastQuestion && (
+                <Button size="sm" onClick={nextQuestion}>
+                  Siguiente
+                </Button>
+              )}
+            </div>
+
+            {jumpOpen && (
+              <QuestionJumpList session={session} onSelect={handleJump} showOutcome />
+            )}
+          </Stack>
+
           <Stack gap="md">
             <Button size="lg" onClick={() => navigate(`/books/${session.configuration.bookId}`)}>
               Estudiar de nuevo

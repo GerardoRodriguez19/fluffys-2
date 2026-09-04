@@ -10,3 +10,4 @@ export { default as BookSelector } from "./BookSelector/BookSelector";
 export { default as BookSelectorCard } from "./BookSelectorCard/BookSelectorCard";
 export { default as SectionSelector } from "./SectionSelector/SectionSelector";
 export { default as AnswerOption } from "./AnswerOption/AnswerOption";
+export { default as QuestionJumpList } from "./QuestionJumpList/QuestionJumpList";
