@@ -375,7 +375,7 @@ export default function AdminPage() {
           <Stack gap="md">
             <a
               className={styles.templateLink}
-              href="/templates/preguntas-plantilla.xlsx"
+              href={`${import.meta.env.BASE_URL}templates/preguntas-plantilla.xlsx`}
               download="preguntas-plantilla.xlsx"
             >
               Descargar plantilla (.xlsx)
