@@ -14,7 +14,12 @@ export function loadStudyConfiguration(): StudyConfiguration | null {
   }
 
   try {
-    return JSON.parse(data) as StudyConfiguration;
+    const parsed = JSON.parse(data) as StudyConfiguration;
+
+    return {
+      ...parsed,
+      movieId: parsed.movieId ?? null,
+    };
   } catch {
     return null;
   }

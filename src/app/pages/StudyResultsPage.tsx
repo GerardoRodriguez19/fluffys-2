@@ -5,8 +5,13 @@ import { useNavigate } from "react-router-dom";
 import { PageLayout, PageHeader, Stack } from "@/components/layout";
 import { QuestionCard, QuestionHeader, AnswerOption, QuestionJumpList } from "@/components/study";
 import { InfoCard, Button } from "@/components/ui";
-import { books } from "@/data";
 import { scoreSession } from "@/features/study/progress/scoreSession";
+import {
+  getSessionCollectionLabel,
+  getSessionCollectionPath,
+  getSessionRetryPath,
+  getSessionTitle,
+} from "@/features/study/sessionContent";
 
 import { useStudySessionStore } from "@/store/studySession";
 
@@ -40,7 +45,20 @@ export default function StudyResultsPage() {
   const score = scoreSession(session);
   const percentage = score.total > 0 ? Math.round((score.correct / score.total) * 100) : 0;
 
-  const book = books.find((book) => book.id === session.configuration.bookId);
+  const contentTitle = getSessionTitle(session.configuration);
+
+  if (session.questions.length === 0) {
+    return (
+      <PageLayout>
+        <PageHeader
+          icon={<Trophy size={32} />}
+          title="No hay resultados"
+          subtitle="Empieza una sesión de estudio para ver tu puntuación."
+        />
+      </PageLayout>
+    );
+  }
+
   const currentQuestion = session.questions[session.currentQuestionIndex];
   const attempt = session.attempts[currentQuestion.bookQuestion.id] ?? defaultAttempt;
   const selectedAnswer = attempt.selectedAnswer;
@@ -65,7 +83,7 @@ export default function StudyResultsPage() {
         <Stack gap="lg">
           <InfoCard>
             <div className={styles.result}>
-              <p className={styles.book}>{book?.title}</p>
+              <p className={styles.book}>{contentTitle}</p>
 
               <div className={styles.percentage}>{percentage}%</div>
 
@@ -86,7 +104,7 @@ export default function StudyResultsPage() {
 
           <Stack gap="md">
             <QuestionHeader
-              book={book?.title || ""}
+              book={contentTitle}
               current={session.currentQuestionIndex + 1}
               total={session.questions.length}
             />
@@ -133,12 +151,16 @@ export default function StudyResultsPage() {
           </Stack>
 
           <Stack gap="md">
-            <Button size="lg" onClick={() => navigate(`/books/${session.configuration.bookId}`)}>
+            <Button size="lg" onClick={() => navigate(getSessionRetryPath(session.configuration))}>
               Estudiar de nuevo
             </Button>
 
-            <Button variant="secondary" size="lg" onClick={() => navigate("/books")}>
-              Volver a libros
+            <Button
+              variant="secondary"
+              size="lg"
+              onClick={() => navigate(getSessionCollectionPath(session.configuration))}
+            >
+              {getSessionCollectionLabel(session.configuration)}
             </Button>
           </Stack>
         </Stack>

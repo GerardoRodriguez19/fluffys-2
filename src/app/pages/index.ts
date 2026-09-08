@@ -2,6 +2,7 @@ export { default as HomePage } from "./HomePage";
 export { default as BooksPage } from "./BooksPage";
 export { default as BookDetailPage } from "./BookDetailPage";
 export { default as MoviesPage } from "./MoviesPage";
+export { default as MovieDetailPage } from "./MovieDetailPage";
 export { default as ReviewPage } from "./ReviewPage";
 export { default as AdminPage } from "./AdminPage";
 export { default as StudySessionPage } from "./StudySessionPage";

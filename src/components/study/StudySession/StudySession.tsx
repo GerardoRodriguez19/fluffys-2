@@ -5,8 +5,12 @@ import { PageLayout, Stack } from "@/components/layout";
 import { QuestionCard, QuestionHeader, AnswerOption, QuestionJumpList } from "@/components/study";
 import { InfoCard } from "@/components/ui";
 import { useStudySessionStore } from "@/store/studySession";
-import { books } from "@/data";
 import { progressRepository } from "@/features/study/createStudyEngine";
+import {
+  getSessionResultsPath,
+  getSessionRetryPath,
+  getSessionTitle,
+} from "@/features/study/sessionContent";
 import {
   scoreSession,
   isQuestionCorrect,
@@ -40,7 +44,7 @@ export default function StudySession() {
 
   useEffect(() => {
     if (session?.finished && !finalizingRef.current) {
-      navigate(`/books/${session.configuration.bookId}/study/results`, { replace: true });
+      navigate(getSessionResultsPath(session.configuration), { replace: true });
     }
   }, [session, navigate]);
 
@@ -58,7 +62,20 @@ export default function StudySession() {
     );
   }
 
-  const book = books.find((item) => item.id === session.configuration.bookId);
+  if (session.questions.length === 0) {
+    return (
+      <PageLayout>
+        <Stack gap="md" justify="center">
+          <p>No hay preguntas para esta sesión.</p>
+          <Button onClick={() => navigate(getSessionRetryPath(session.configuration))}>
+            Volver
+          </Button>
+        </Stack>
+      </PageLayout>
+    );
+  }
+
+  const contentTitle = getSessionTitle(session.configuration);
   const currentQuestion = session.questions[session.currentQuestionIndex];
   const questionId = currentQuestion.bookQuestion.id;
   const attempt = session.attempts[questionId] ?? defaultAttempt;
@@ -182,7 +199,7 @@ export default function StudySession() {
       }
 
       setCorrectAnswers(score.correct);
-      navigate(`/books/${activeSession.configuration.bookId}/study/results`);
+      navigate(getSessionResultsPath(activeSession.configuration));
     } finally {
       finalizingRef.current = false;
       setFinalizing(false);
@@ -198,7 +215,7 @@ export default function StudySession() {
     <PageLayout>
       <Stack gap="lg">
         <QuestionHeader
-          book={book?.title || ""}
+          book={contentTitle}
           current={session.currentQuestionIndex + 1}
           total={session.questions.length}
         />

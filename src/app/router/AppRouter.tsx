@@ -5,6 +5,7 @@ import {
   HomePage,
   BooksPage,
   MoviesPage,
+  MovieDetailPage,
   ReviewPage,
   AdminPage,
   BookDetailPage,
@@ -35,6 +36,12 @@ function AnimatedRoutes() {
         />
 
         <Route path="/movies" element={<MoviesPage />} />
+
+        <Route path="/movies/:movieId" element={<MovieDetailPage />} />
+
+        <Route path="/movies/:movieId/study/session" element={<StudySessionPage />} />
+
+        <Route path="/movies/:movieId/study/results" element={<StudyResultsPage />} />
 
         <Route path="/review" element={<ReviewPage />} />
 

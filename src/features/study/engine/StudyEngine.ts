@@ -20,14 +20,19 @@ export class StudyEngine {
 
     let questions = allQuestions;
 
-    if (configuration.bookId) {
+    if (configuration.movieId) {
+      questions = questions.filter((question) => question.movieId === configuration.movieId);
+    } else if (configuration.bookId) {
       questions = questions.filter((question) => question.bookId === configuration.bookId);
     } else {
       questions = [];
     }
 
     if (configuration.chapters.length > 0) {
-      questions = questions.filter((question) => configuration.chapters.includes(question.chapter));
+      questions = questions.filter(
+        (question) =>
+          typeof question.chapter === "number" && configuration.chapters.includes(question.chapter)
+      );
     }
 
     if (configuration.categories.length > 0) {

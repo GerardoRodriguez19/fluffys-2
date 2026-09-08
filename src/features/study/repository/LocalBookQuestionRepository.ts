@@ -1,11 +1,11 @@
-import { bookQuestions } from "@/data";
+import { bookQuestions, movieQuestions } from "@/data";
 
 import type { BookQuestion } from "@/types";
 import type { BookQuestionRepository } from "./BookQuestionRepository";
 
 export class LocalBookQuestionRepository implements BookQuestionRepository {
   async getQuestions(): Promise<BookQuestion[]> {
-    return bookQuestions;
+    return [...bookQuestions, ...movieQuestions];
   }
 
   async createQuestion(): Promise<BookQuestion> {

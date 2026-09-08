@@ -1,16 +1,22 @@
-import { Clapperboard } from "lucide-react";
-import { PageLayout, PageHeader } from "@/components/layout";
+import { movies } from "@/data";
+import { APP_ICONS } from "@/theme";
+import { MovieCard } from "@/components/movies";
+import { PageLayout, PageHeader, Stack } from "@/components/layout";
 
 export default function MoviesPage() {
   return (
     <PageLayout>
       <PageHeader
-        icon={<Clapperboard size={34} />}
-
         title="Películas"
-
-        subtitle="Repasa cualquiera de las ocho películas."
+        subtitle="Selecciona una película para comenzar."
+        icon={<APP_ICONS.movies size={34} />}
       />
+
+      <Stack gap="lg">
+        {movies.map((movie) => (
+          <MovieCard key={movie.id} movie={movie} />
+        ))}
+      </Stack>
     </PageLayout>
   );
 }

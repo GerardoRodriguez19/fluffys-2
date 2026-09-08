@@ -52,6 +52,7 @@ export default function StudyConfigurator({ onStart, lockedStudyMode }: Props) {
     setConfiguration({
       ...configuration,
       bookId,
+      movieId: null,
       sectionId: null,
       chapters: [],
     });
@@ -82,7 +83,10 @@ export default function StudyConfigurator({ onStart, lockedStudyMode }: Props) {
   async function handleStart() {
     console.log("1. handleStart");
 
-    const session = await studyEngine.createSession(configuration);
+    const session = await studyEngine.createSession({
+      ...configuration,
+      movieId: null,
+    });
 
     console.log("2. Sesión creada", session);
 
