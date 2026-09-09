@@ -46,16 +46,15 @@ export const books: Book[] = [
     badge: "Libro 7",
     title: "Harry Potter 7",
     subtitle: "Las Reliquias de la Muerte",
-    chapters: 36,
+    chapters: 37,
     color: COLORS.hp7,
     questionCount: 0,
 
     sections: [
-      { id: 1, chapters: [1, 2, 3, 4, 5, 6, 7] },
-      { id: 2, chapters: [8, 9, 10, 11, 12, 13, 14] },
-      { id: 3, chapters: [15, 16, 17, 18, 19, 20, 21, 22] },
-      { id: 4, chapters: [23, 24, 25, 26, 27, 28, 29, 30] },
-      { id: 5, chapters: [31, 32, 33, 34, 35, 36, 37] },
+      { id: 1, chapters: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] },
+      { id: 2, chapters: [11, 12, 13, 14, 15, 16] },
+      { id: 3, chapters: [17, 18, 19, 20, 21, 22, 23, 24, 25, 26] },
+      { id: 4, chapters: [27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37] },
     ],
   },
 ];
