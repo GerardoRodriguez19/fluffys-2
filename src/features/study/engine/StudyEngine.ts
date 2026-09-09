@@ -28,7 +28,7 @@ export class StudyEngine {
       questions = [];
     }
 
-    if (configuration.chapters.length > 0) {
+    if (configuration.sectionIds.length > 0 || configuration.chapters.length > 0) {
       questions = questions.filter(
         (question) =>
           typeof question.chapter === "number" && configuration.chapters.includes(question.chapter)

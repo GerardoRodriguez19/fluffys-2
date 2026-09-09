@@ -2,25 +2,20 @@ import { books } from "@/data";
 import { Stack } from "@/components/layout";
 import { Chip } from "@/components/ui";
 
-import type { BookId, SectionId } from "@/types";
+import type { BookId } from "@/types";
 
 interface Props {
   bookId: BookId;
-  sectionId: SectionId;
+  sectionId: number;
   value: number[];
   onChange(chapters: number[]): void;
 }
 
 export default function ChapterSelector({ bookId, sectionId, value, onChange }: Props) {
-  const book = books.find((b) => b.id === bookId);
+  const book = books.find((item) => item.id === bookId);
+  const selectedSectionData = book?.sections.find((section) => section.id === sectionId);
 
-  if (!book || sectionId === null) {
-    return null;
-  }
-
-  const selectedSectionData = book.sections.find((section) => section.id === sectionId);
-
-  if (!selectedSectionData) {
+  if (!book || !selectedSectionData) {
     return null;
   }
 
@@ -38,16 +33,16 @@ export default function ChapterSelector({ bookId, sectionId, value, onChange }: 
 
   function handleSelectAll() {
     if (allSelected) {
-      onChange([]);
+      onChange(value.filter((chapter) => !chapters.includes(chapter)));
       return;
     }
 
-    onChange(chapters);
+    onChange([...new Set([...value, ...chapters])]);
   }
 
   return (
     <Stack direction="row" gap="sm" wrap>
-      <Chip selected={allSelected} onClick={handleSelectAll}>
+      <Chip selected={allSelected && chapters.length > 0} onClick={handleSelectAll}>
         Toda la sección
       </Chip>
 

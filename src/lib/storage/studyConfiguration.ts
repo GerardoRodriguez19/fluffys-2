@@ -14,11 +14,17 @@ export function loadStudyConfiguration(): StudyConfiguration | null {
   }
 
   try {
-    const parsed = JSON.parse(data) as StudyConfiguration;
+    const parsed = JSON.parse(data) as StudyConfiguration & { sectionId?: number | null };
+    const sectionIds = Array.isArray(parsed.sectionIds)
+      ? parsed.sectionIds
+      : typeof parsed.sectionId === "number"
+        ? [parsed.sectionId]
+        : [];
 
     return {
       ...parsed,
       movieId: parsed.movieId ?? null,
+      sectionIds,
     };
   } catch {
     return null;

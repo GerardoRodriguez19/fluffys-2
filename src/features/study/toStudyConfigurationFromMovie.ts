@@ -6,7 +6,7 @@ export function toStudyConfigurationFromMovie(
   return {
     bookId: null,
     movieId: configuration.movieId,
-    sectionId: null,
+    sectionIds: [],
     chapters: [],
     categories: [],
     questionAmount: configuration.questionAmount,

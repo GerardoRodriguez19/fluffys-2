@@ -5,7 +5,7 @@ import type { StudyConfiguration } from "@/types";
 export const defaultStudyConfiguration: StudyConfiguration = {
   bookId: null,
   movieId: null,
-  sectionId: null,
+  sectionIds: [],
   chapters: [],
   categories: [...categories],
   questionAmount: 10,

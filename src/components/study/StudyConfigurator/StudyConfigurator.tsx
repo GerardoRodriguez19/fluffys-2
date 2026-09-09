@@ -15,7 +15,7 @@ import {
   StudyModeSelector,
 } from "@/components/study";
 
-import type { BookId, SectionId, StudyMode } from "@/types";
+import type { BookId, StudyMode } from "@/types";
 
 import styles from "./StudyConfigurator.module.css";
 
@@ -42,63 +42,68 @@ export default function StudyConfigurator({ onStart, lockedStudyMode }: Props) {
   const setSession = useStudySessionStore((state) => state.setSession);
 
   const selectedBook = configuration.bookId;
-  const selectedSection = configuration.sectionId;
+  const selectedSectionIds = configuration.sectionIds;
   const selectedChapters = configuration.chapters;
   const selectedCategories = configuration.categories;
   const questionAmount = configuration.questionAmount;
   const studyMode = configuration.studyMode;
+
+  const book = books.find((item) => item.id === selectedBook);
+  const selectedSections =
+    book?.sections.filter((section) => selectedSectionIds.includes(section.id)) ?? [];
 
   function handleBookChange(bookId: BookId) {
     setConfiguration({
       ...configuration,
       bookId,
       movieId: null,
-      sectionId: null,
+      sectionIds: [],
       chapters: [],
     });
   }
 
-  function handleSectionChange(sectionId: SectionId) {
-    if (sectionId === null || !selectedBook) {
+  function handleSectionToggle(sectionId: number) {
+    if (!selectedBook) {
+      return;
+    }
+
+    const selected = books.find((item) => item.id === selectedBook);
+    const section = selected?.sections.find((item) => item.id === sectionId);
+
+    if (!section) {
+      return;
+    }
+
+    const isSelected = configuration.sectionIds.includes(sectionId);
+
+    if (isSelected) {
       setConfiguration({
         ...configuration,
-        sectionId: null,
-        chapters: [],
+        sectionIds: configuration.sectionIds.filter((id) => id !== sectionId),
+        chapters: configuration.chapters.filter((chapter) => !section.chapters.includes(chapter)),
       });
 
       return;
     }
 
-    const book = books.find((book) => book.id === selectedBook);
-
-    const section = book?.sections.find((section) => section.id === sectionId);
-
     setConfiguration({
       ...configuration,
-      sectionId,
-      chapters: section?.chapters ?? [],
+      sectionIds: [...configuration.sectionIds, sectionId].sort((a, b) => a - b),
+      chapters: [...new Set([...configuration.chapters, ...section.chapters])].sort((a, b) => a - b),
     });
   }
 
   async function handleStart() {
-    console.log("1. handleStart");
-
     const session = await studyEngine.createSession({
       ...configuration,
       movieId: null,
     });
 
-    console.log("2. Sesión creada", session);
-
     setSession(session);
-
-    console.log("3. Sesión guardada");
 
     if (configuration.bookId) {
       onStart?.(configuration.bookId);
     }
-
-    console.log("4. onStart ejecutado");
   }
 
   return (
@@ -111,31 +116,52 @@ export default function StudyConfigurator({ onStart, lockedStudyMode }: Props) {
       </Section>
 
       {selectedBook && (
-        <Section title="¿Qué sección quieres estudiar?" description="Selecciona una sección.">
+        <Section
+          title="¿Qué secciones quieres estudiar?"
+          description="Puedes combinar varias secciones. Después eliges si quieres todas o solo algunos capítulos."
+        >
           <SectionSelector
             bookId={selectedBook}
-            value={selectedSection}
-            onChange={handleSectionChange}
+            value={selectedSectionIds}
+            onToggle={handleSectionToggle}
           />
         </Section>
       )}
 
-      {selectedBook && selectedSection !== null && (
+      {selectedBook && selectedSections.length > 0 && (
         <Section
           title="¿Qué capítulos quieres estudiar?"
-          description="Selecciona uno o más capítulos de la sección."
+          description="En cada sección puedes marcar toda la sección o capítulos sueltos."
         >
-          <ChapterSelector
-            bookId={selectedBook}
-            sectionId={selectedSection}
-            value={selectedChapters}
-            onChange={(chapters) =>
-              setConfiguration({
-                ...configuration,
-                chapters,
-              })
-            }
-          />
+          <Stack gap="lg">
+            {selectedSections.map((section) => {
+              const first = section.chapters[0];
+              const last = section.chapters[section.chapters.length - 1];
+
+              return (
+                <div key={section.id} className={styles.chapterGroup}>
+                  <h3>
+                    Sección {section.id}
+                    <span>
+                      Capítulos {first}–{last}
+                    </span>
+                  </h3>
+
+                  <ChapterSelector
+                    bookId={selectedBook}
+                    sectionId={section.id}
+                    value={selectedChapters}
+                    onChange={(chapters) =>
+                      setConfiguration((current) => ({
+                        ...current,
+                        chapters,
+                      }))
+                    }
+                  />
+                </div>
+              );
+            })}
+          </Stack>
         </Section>
       )}
 

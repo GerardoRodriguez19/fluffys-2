@@ -1,3 +1,17 @@
 .container {
   width: 100%;
 }
+
+.chapterGroup h3 {
+  margin: 0 0 0.75rem;
+  color: var(--text);
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.chapterGroup h3 span {
+  margin-left: 0.5rem;
+  color: var(--text-light);
+  font-size: 0.95rem;
+  font-weight: 400;
+}

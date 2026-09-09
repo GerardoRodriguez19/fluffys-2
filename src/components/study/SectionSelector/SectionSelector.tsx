@@ -3,15 +3,15 @@ import { books } from "@/data";
 import { Stack } from "@/components/layout";
 import { SelectableCard } from "@/components/ui";
 
-import type { BookId, SectionId } from "@/types";
+import type { BookId } from "@/types";
 
 interface Props {
   bookId: BookId | null;
-  value: SectionId;
-  onChange(section: SectionId): void;
+  value: number[];
+  onToggle(sectionId: number): void;
 }
 
-export default function SectionSelector({ bookId, value, onChange }: Props) {
+export default function SectionSelector({ bookId, value, onToggle }: Props) {
   if (!bookId) {
     return null;
   }
@@ -33,8 +33,8 @@ export default function SectionSelector({ bookId, value, onChange }: Props) {
             key={section.id}
             title={`Sección ${section.id}`}
             description={`Capítulos ${first}–${last}`}
-            selected={value === section.id}
-            onClick={() => onChange(section.id)}
+            selected={value.includes(section.id)}
+            onClick={() => onToggle(section.id)}
           />
         );
       })}
